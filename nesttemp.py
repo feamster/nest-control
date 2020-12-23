@@ -59,19 +59,19 @@ def get_tokens(path='{}/conf'.format(base_path)):
 
     return google_tokens
 
-def build_url(tokens):
+def build_url(tokens, zone):
     devices = get_devices()
     account = get_account()
 
     program = account['project_id']
     baseurl = 'https://smartdevicemanagement.googleapis.com/v1/enterprises/{}/devices'.format(program)
-    url = '{}/{}:executeCommand'.format(baseurl,devices['upstairs'])
+    url = '{}/{}:executeCommand'.format(baseurl,devices[zone])
     headers = { 'Authorization' : 'Bearer ' + tokens['access_token'], "Content-Type" : "application/json"}
 
     return (url, headers)
 
-def set_mode(tokens,mode):
-    (url, headers) = build_url(tokens)
+def set_mode(tokens, mode, zone):
+    (url, headers) = build_url(tokens, zone)
     data = {
         'command' : 'sdm.devices.commands.ThermostatMode.SetMode', 
         'params' : {'mode' : mode}
@@ -80,8 +80,8 @@ def set_mode(tokens,mode):
     res = requests.post(url, headers=headers, data=json.dumps(data))
     print(res.content)
 
-def set_heat(tokens, temp):
-    (url, headers) = build_url(tokens)
+def set_heat(tokens, temp, zone):
+    (url, headers) = build_url(tokens, zone)
     data = {
         'command' : 'sdm.devices.commands.ThermostatTemperatureSetpoint.SetHeat', 
         'params' : {'heatCelsius' : temp}
@@ -90,8 +90,8 @@ def set_heat(tokens, temp):
     res = requests.post(url, headers=headers, data=json.dumps(data))
     print(res.content)
 
-def set_cool(tokens, temp):
-    (url, headers) = build_url(tokens)
+def set_cool(tokens, temp, zone):
+    (url, headers) = build_url(tokens, zone)
     data = {
         'command' : 'sdm.devices.commands.ThermostatTemperatureSetpoint.SetCool', 
         'params' : {'coolCelsius' : temp}
@@ -100,8 +100,8 @@ def set_cool(tokens, temp):
     res = requests.post(url, headers=headers, data=json.dumps(data))
     print(res.content)
 
-def set_temp_point(tokens, low=20, high=22):
-    (url, headers) = build_url(tokens)
+def set_temp_point(tokens, low, high, zone):
+    (url, headers) = build_url(tokens, zone)
     data = {
         'command' : 'sdm.devices.commands.ThermostatTemperatureSetpoint.SetRange', 
         'params' : {'heatCelsius' : low, 'coolCelsius' : high}
@@ -118,23 +118,29 @@ parser.add_argument('-n', '--max', type=int, help='cool to max (range)')
 parser.add_argument('-t', '--heat', type=int, help='heat to temp')
 parser.add_argument('-c', '--cool', type=int, help="cool to temp") 
 parser.add_argument('-d', '--mode', type=str, help="set mode") 
+parser.add_argument('-z', '--zone', type=str, help="zone") 
 args = parser.parse_args()
 
 tokens = get_tokens()
 
-if args.min:
-    set_mode(tokens,'HEATCOOL')
-    set_temp_point(tokens, args.min, args.min+1.5)
-elif args.max:
-    set_mode(tokens,'HEATCOOL')
-    set_temp_point(tokens, args.max-2, args.max)
-elif args.heat:
-    set_mode(tokens,'HEAT')
-    set_heat(tokens,args.heat)
-elif args.cool:
-    set_mode(tokens,'COOL')
-    #set_cool(tokens,args.cool)
+if args.zone:
+    zone = args.zone
 else:
-    set_mode(tokens,'HEATCOOL')
+    zone = 'upstairs'
+
+if args.min:
+    set_mode(tokens,'HEATCOOL', zone)
+    set_temp_point(tokens, args.min, args.min+1.5, zone)
+elif args.max:
+    set_mode(tokens,'HEATCOOL', zone)
+    set_temp_point(tokens, args.max-2, args.max, zone)
+elif args.heat:
+    set_mode(tokens,'HEAT', zone)
+    set_heat(tokens,args.heat, zone)
+elif args.cool:
+    set_mode(tokens,'COOL', zone)
+    set_cool(tokens,args.cool, zone)
+else:
+    set_mode(tokens,'HEATCOOL', zone)
     set_temp_point(tokens, 20,22)
 
