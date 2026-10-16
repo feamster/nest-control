@@ -1,2 +1,4 @@
 conf/
 README.txt
+*.swp
+geckodriver.log
